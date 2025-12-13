@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Home, BarChart3, GitBranch, Search, Zap } from "lucide-react";
+import { X, Home, BarChart3, FileText, GitBranch, Search, Zap } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -11,6 +11,7 @@ interface SidebarProps {
 
 const navigation = [
   { name: "Home", href: "/", icon: Home },
+  { name: "Summary of Findings", href: "/findings", icon: FileText },
   { name: "Case Studies", href: "/case-studies", icon: BarChart3 },
   { name: "Adoption Dynamics", href: "#", icon: GitBranch, disabled: true },
   { name: "Quality Trade-offs", href: "#", icon: Zap, disabled: true },

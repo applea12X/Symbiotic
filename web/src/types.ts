@@ -6,6 +6,9 @@ export interface Paper {
   year: number;
   citations: number;
   domain: string;
+  summary?: string; // 2 sentence summary
+  mlFrameworks?: string[]; // ML frameworks mentioned
+  statisticalMethods?: string[]; // Statistical methods described
   // Simulation properties
   x?: number;
   y?: number;
@@ -31,4 +34,5 @@ export interface Discipline {
   r?: number; // Radius
 }
 
-export type FilterType = "impact" | "code";
+export type FilterOption = "impact" | "code";
+export type FilterType = FilterOption[];
