@@ -2,13 +2,16 @@
 FastAPI backend for research paper dataset Q&A using Ollama.
 """
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import requests
 import json
 from pathlib import Path
 from typing import Optional
+import PyPDF2
+import io
+import re
 
 app = FastAPI(title="Research Paper Dataset API")
 
@@ -223,6 +226,225 @@ def check_ollama_connection() -> bool:
         return response.status_code == 200
     except:
         return False
+
+
+def extract_text_from_pdf(pdf_file: bytes) -> str:
+    """Extract text content from a PDF file."""
+    try:
+        pdf_reader = PyPDF2.PdfReader(io.BytesIO(pdf_file))
+        text = ""
+        for page in pdf_reader.pages:
+            text += page.extract_text() + "\n"
+        return text.strip()
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Error extracting PDF text: {str(e)}")
+
+
+def extract_paper_metadata(text: str) -> dict:
+    """
+    Extract basic metadata from the paper text.
+    This is a simple heuristic-based extraction.
+    """
+    lines = text.split('\n')[:50]  # Check first 50 lines for metadata
+
+    metadata = {
+        "title": "",
+        "abstract": "",
+        "year": "",
+    }
+
+    # Simple heuristic: title is usually one of the first few non-empty lines
+    for line in lines[:10]:
+        if len(line.strip()) > 10 and not line.strip().isdigit():
+            metadata["title"] = line.strip()
+            break
+
+    # Look for abstract
+    abstract_start = -1
+    for i, line in enumerate(lines):
+        if re.search(r'\babstract\b', line, re.IGNORECASE):
+            abstract_start = i
+            break
+
+    if abstract_start >= 0:
+        abstract_lines = []
+        for line in lines[abstract_start:abstract_start + 20]:
+            if line.strip() and not re.search(r'\b(introduction|keywords)\b', line, re.IGNORECASE):
+                abstract_lines.append(line.strip())
+            elif re.search(r'\b(introduction|keywords)\b', line, re.IGNORECASE):
+                break
+        metadata["abstract"] = " ".join(abstract_lines)
+
+    # Look for year (4 consecutive digits, typically 19xx or 20xx)
+    year_match = re.search(r'\b(19|20)\d{2}\b', text[:5000])
+    if year_match:
+        metadata["year"] = year_match.group()
+
+    return metadata
+
+
+def construct_paper_analysis_prompt(paper_text: str, paper_metadata: dict, dataset_data: dict) -> str:
+    """
+    Construct a specialized prompt for analyzing an uploaded research paper
+    and comparing it to the dataset.
+    """
+    metadata = dataset_data.get("metadata", {})
+    aggregate = dataset_data.get("aggregate_metrics", {})
+    fields = dataset_data.get("field_analyses", {})
+
+    # Build a concise summary of all fields
+    field_summaries = []
+    for field_name, field_data in fields.items():
+        ml_impact = field_data.get("ml_impact", {})
+        total_papers = ml_impact.get('total_papers', 0)
+        ml_rate = ml_impact.get('ml_adoption_rate', 0)
+        ml_papers = int(total_papers * ml_rate / 100)
+
+        field_summaries.append(
+            f"  • {field_name}: {ml_rate}% ML adoption ({ml_papers}/{total_papers} papers)"
+        )
+
+    # Truncate paper text to avoid token limits (use first ~8000 chars)
+    truncated_text = paper_text[:8000]
+    if len(paper_text) > 8000:
+        truncated_text += "\n[... paper continues ...]"
+
+    prompt = f"""You are an expert research analyst specializing in ML/AI impact assessment in academic research.
+
+UPLOADED PAPER ANALYSIS TASK:
+A user has uploaded their research paper. Your job is to:
+1. Identify the paper's research field
+2. Assess the ML/AI usage level in this paper
+3. Compare it to the general trends in that field from our dataset
+4. Provide insights about how this paper's ML usage compares to peers
+
+DATASET CONTEXT (All Fields ML Adoption Rates):
+{chr(10).join(field_summaries)}
+
+Overall ML Adoption Across All Fields: {aggregate.get('aggregate_ml_adoption_rate', 'N/A')}%
+
+PAPER CONTENT:
+Title: {paper_metadata.get('title', 'Not detected')}
+Year: {paper_metadata.get('year', 'Not detected')}
+
+Full Text:
+{truncated_text}
+
+ANALYSIS INSTRUCTIONS:
+1. **Identify the Field**: Determine which research field this paper belongs to (Biology, Computer Science, Physics, etc.)
+
+2. **Assess ML Impact Level**: Classify the paper's ML usage as:
+   - NONE: No ML/AI methods used
+   - MINIMAL: ML mentioned but not central (e.g., using basic statistical software)
+   - MODERATE: ML methods used for analysis but not the main focus
+   - SUBSTANTIAL: ML is a significant part of the methodology
+   - CORE: ML/AI is the central focus of the research
+
+3. **Compare to Field Average**: Compare this paper's ML usage to the field's average from the dataset above
+
+4. **Provide Insights**:
+   - How does this paper compare to peers in the same field?
+   - Is this paper ahead/behind the curve in ML adoption?
+   - What ML techniques or tools are used (if any)?
+
+OUTPUT FORMAT:
+Provide a clear, structured analysis in this format:
+
+📄 **Paper Overview**
+- Field: [identified field]
+- Estimated Year: [year if found]
+- Topic Summary: [1-2 sentences about what the paper is about]
+
+🤖 **ML/AI Impact Assessment**
+- ML Usage Level: [NONE/MINIMAL/MODERATE/SUBSTANTIAL/CORE]
+- ML Techniques Identified: [list techniques, or "None detected"]
+- ML Tools/Frameworks Mentioned: [list if found, or "None mentioned"]
+
+📊 **Comparison to Field Average**
+- Your Field's Average ML Adoption: [X]%
+- Your Paper's Position: [Above/Below/At average]
+- Context: [2-3 sentences comparing to the field]
+
+💡 **Key Insights**
+[2-4 bullet points about:
+- How this paper's ML usage compares to the field
+- Whether this is typical/advanced/basic for the field
+- Any notable aspects of the ML implementation
+- Recommendations (if applicable)]
+
+Now provide the analysis:"""
+
+    return prompt
+
+
+@app.post("/api/upload-paper", response_model=ChatResponse)
+async def upload_paper(file: UploadFile = File(...)):
+    """
+    Upload a research paper PDF and get an automatic ML impact analysis.
+    """
+    if dataset is None:
+        raise HTTPException(status_code=500, detail="Dataset not loaded")
+
+    # Validate file type
+    if not file.filename.endswith('.pdf'):
+        raise HTTPException(status_code=400, detail="Only PDF files are supported")
+
+    try:
+        # Read the PDF file
+        pdf_content = await file.read()
+
+        # Extract text from PDF
+        paper_text = extract_text_from_pdf(pdf_content)
+
+        if not paper_text or len(paper_text) < 100:
+            raise HTTPException(
+                status_code=400,
+                detail="Could not extract sufficient text from PDF. The file may be image-based or corrupted."
+            )
+
+        # Extract basic metadata
+        paper_metadata = extract_paper_metadata(paper_text)
+
+        # Construct analysis prompt
+        prompt = construct_paper_analysis_prompt(paper_text, paper_metadata, dataset)
+
+        # Call Ollama API
+        ollama_response = requests.post(
+            "http://127.0.0.1:11434/api/generate",
+            json={
+                "model": "llama3.1:8b",
+                "prompt": prompt,
+                "stream": False,
+            },
+            timeout=120,  # 2 minute timeout for paper analysis
+        )
+
+        if ollama_response.status_code != 200:
+            raise HTTPException(
+                status_code=500,
+                detail=f"Ollama API error: {ollama_response.text}"
+            )
+
+        # Extract response from Ollama
+        ollama_data = ollama_response.json()
+        response_text = ollama_data.get("response", "")
+
+        return ChatResponse(response=response_text)
+
+    except requests.exceptions.Timeout:
+        raise HTTPException(
+            status_code=504,
+            detail="Analysis timed out. The paper might be too long."
+        )
+    except requests.exceptions.ConnectionError:
+        raise HTTPException(
+            status_code=503,
+            detail="Cannot connect to Ollama server. Make sure it's running at http://127.0.0.1:11434"
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error processing paper: {str(e)}")
 
 
 @app.get("/api/dataset/summary")

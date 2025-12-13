@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { Search, Filter } from "lucide-react";
-import { CaseStudy } from "@/data/mockCaseStudies";
+import { CaseStudy } from "@/data/realCaseStudies";
 import { CaseFilters } from "./CaseFilters";
 
 interface CaseListProps {
