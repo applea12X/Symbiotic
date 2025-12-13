@@ -40,18 +40,46 @@ export function ChatInterface() {
     setInput("");
     setIsLoading(true);
 
-    // TODO: Replace with actual API call to FastAPI endpoint
-    // Simulate API response for now
-    setTimeout(() => {
+    try {
+      const response = await fetch("http://localhost:8000/api/chat", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          message: userMessage.content,
+          conversation_history: messages,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`API error: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: "assistant",
-        content: "This is a placeholder response. The backend API endpoint will be connected soon.",
+        content: data.response || "I couldn't generate a response.",
         timestamp: new Date(),
       };
+
       setMessages((prev) => [...prev, assistantMessage]);
+    } catch (error) {
+      console.error("Error calling API:", error);
+      const errorMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        role: "assistant",
+        content: error instanceof Error
+          ? `Error: ${error.message}. Make sure the backend server is running at http://localhost:8000`
+          : "An error occurred while processing your request.",
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, errorMessage]);
+    } finally {
       setIsLoading(false);
-    }, 1000);
+    }
   };
 
   return (
@@ -144,7 +172,7 @@ export function ChatInterface() {
             </div>
 
             <p className="text-xs text-white/40 mt-3 text-center">
-              Backend API integration pending - responses are currently simulated
+              Connected to Ollama via FastAPI backend
             </p>
           </form>
         </div>
