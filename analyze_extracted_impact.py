@@ -42,40 +42,77 @@ def load_extracted_data(category: str) -> List[Dict]:
 
 
 def analyze_ml_adoption(papers: List[Dict]) -> Dict:
-    """Analyze ML adoption markers across papers."""
+    """Analyze ML impact across papers with rigorous validation."""
     frameworks = Counter()
     compute_resources = Counter()
     datasets = Counter()
     models = Counter()
+    impact_types = Counter()
+    maturity_levels = Counter()
+    ml_usage_types = Counter()
 
     papers_with_ml = 0
+    papers_with_keyword_stuffing = 0
+    papers_by_maturity = {
+        'exploratory': 0,
+        'applied': 0,
+        'core': 0,
+        'field_shaping': 0,
+        'none': 0
+    }
 
     for paper in papers:
-        ml_adoption = paper.get('ml_adoption', {})
+        # Try new structure first, fall back to old
+        ml_analysis = paper.get('ml_impact_analysis', paper.get('ml_adoption', {}))
 
-        if ml_adoption:
-            papers_with_ml += 1
+        if ml_analysis:
+            # New structure
+            if ml_analysis.get('has_ml_usage'):
+                papers_with_ml += 1
 
-            for fw in ml_adoption.get('frameworks', []):
+            if ml_analysis.get('is_keyword_stuffing'):
+                papers_with_keyword_stuffing += 1
+
+            usage_type = ml_analysis.get('ml_usage_type', 'unknown')
+            if usage_type:
+                ml_usage_types[usage_type] += 1
+
+            maturity = ml_analysis.get('maturity_level', 'none')
+            if maturity in papers_by_maturity:
+                papers_by_maturity[maturity] += 1
+            maturity_levels[maturity] += 1
+
+            for impact_type in ml_analysis.get('impact_types', []):
+                if impact_type:
+                    impact_types[impact_type] += 1
+
+            for fw in ml_analysis.get('frameworks', []):
                 if fw:
                     frameworks[fw] += 1
 
-            for comp in ml_adoption.get('compute_resources', []):
+            for comp in ml_analysis.get('compute_resources', []):
                 if comp:
                     compute_resources[comp] += 1
 
-            for ds in ml_adoption.get('datasets', []):
+            for ds in ml_analysis.get('datasets', []):
                 if ds:
                     datasets[ds] += 1
 
-            for model in ml_adoption.get('models', []):
+            for model in ml_analysis.get('models', []):
                 if model:
                     models[model] += 1
 
+    total = len(papers)
+
     return {
-        'papers_with_ml_adoption': papers_with_ml,
-        'total_papers': len(papers),
-        'ml_adoption_rate': papers_with_ml / len(papers) if papers else 0,
+        'papers_with_ml_usage': papers_with_ml,
+        'papers_with_keyword_stuffing': papers_with_keyword_stuffing,
+        'keyword_stuffing_rate': papers_with_keyword_stuffing / total if total else 0,
+        'total_papers': total,
+        'ml_usage_rate': papers_with_ml / total if total else 0,
+        'ml_usage_types': dict(ml_usage_types.most_common()),
+        'maturity_distribution': papers_by_maturity,
+        'impact_types': dict(impact_types.most_common(10)),
         'top_frameworks': dict(frameworks.most_common(20)),
         'top_compute_resources': dict(compute_resources.most_common(20)),
         'top_datasets': dict(datasets.most_common(20)),

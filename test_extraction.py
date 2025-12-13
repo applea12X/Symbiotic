@@ -13,29 +13,44 @@ OLLAMA_BASE_URL = "http://localhost:11434"
 OLLAMA_MODEL = "llama3.1:8b"
 INPUT_DIR = Path("data/combined_compressed")
 
-EXTRACTION_PROMPT = """You are a research analysis assistant. Analyze the following research paper and extract structured information in JSON format.
+EXTRACTION_PROMPT = """You are an expert academic analyst specializing in how machine learning (ML) impacts different academic fields. You evaluate papers with peer-review rigor and cross-disciplinary awareness.
 
 Paper Text:
 {text}
 
+ANALYSIS PROCESS:
+1. Identify the primary academic field.
+2. Detect ML usage - both explicit and implicit.
+3. Validate ML relevance - check for keyword stuffing vs. substantive use.
+4. Classify ML impact type and maturity level.
+
 Extract the following information in valid JSON format:
 
 {{
-  "citations": {{
-    "cited_papers": ["list of paper titles/authors mentioned"],
-    "citation_count_estimate": "number"
+  "primary_field": "The primary academic field",
+  "ml_impact_analysis": {{
+    "has_ml_usage": true/false,
+    "ml_usage_type": "explicit|implicit|minimal|none",
+    "is_keyword_stuffing": true/false,
+    "ml_role_description": "How ML is actually used or why limited",
+    "impact_types": ["analytical_enhancement", "predictive_modeling", etc.],
+    "maturity_level": "exploratory|applied|core|field_shaping|none",
+    "impact_on_field": "Expert summary of ML impact",
+    "key_takeaway": "One-sentence insight",
+    "frameworks": ["ONLY if actually used"],
+    "compute_resources": ["ONLY if substantively discussed"],
+    "datasets": ["ONLY if used for training/evaluation"],
+    "models": ["ONLY if implemented or evaluated"]
   }},
-  "ml_adoption": {{
-    "frameworks": ["TensorFlow", "PyTorch", etc.],
-    "compute_resources": ["GPU types", "platforms"],
-    "datasets": ["datasets used"],
-    "models": ["ML models mentioned"]
+  "citations": {{
+    "cited_papers": ["Sample titles/authors"],
+    "citation_count_estimate": "number"
   }},
   "reproducibility": {{
     "code_available": true/false,
-    "code_url": "URL if mentioned",
+    "code_url": "URL",
     "data_available": true/false,
-    "data_url": "URL if mentioned",
+    "data_url": "URL",
     "has_supplementary": true/false,
     "mentions_replication": true/false
   }},
@@ -51,17 +66,18 @@ Extract the following information in valid JSON format:
     "mentions_media_coverage": true/false,
     "mentions_policy_influence": true/false,
     "mentions_industry_adoption": true/false,
-    "real_world_applications": ["applications"]
+    "real_world_applications": []
   }},
   "additional_info": {{
-    "funding_sources": ["NSF", "NIH", etc.],
-    "collaborations": ["institutions"],
-    "keywords": ["key terms"],
-    "methodology": "brief description",
-    "main_findings": "summary"
+    "funding_sources": [],
+    "collaborations": [],
+    "keywords": [],
+    "methodology": "",
+    "main_findings": ""
   }}
 }}
 
+CRITICAL: Be conservative about ML importance. Only list tools if ACTUALLY USED, not just mentioned.
 Return ONLY valid JSON."""
 
 
@@ -179,8 +195,9 @@ def validate_extraction(extracted):
     print("\nValidating extraction...")
 
     required_fields = [
+        'primary_field',
+        'ml_impact_analysis',
         'citations',
-        'ml_adoption',
         'reproducibility',
         'research_outcomes',
         'impact_indicators',
@@ -205,12 +222,26 @@ def display_results(extracted):
     print("EXTRACTION RESULTS")
     print("=" * 60)
 
-    # ML Adoption
-    ml = extracted.get('ml_adoption', {})
-    print("\nML Adoption:")
-    print(f"  Frameworks: {', '.join(ml.get('frameworks', [])) or 'None found'}")
-    print(f"  Datasets: {', '.join(ml.get('datasets', [])) or 'None found'}")
-    print(f"  Compute: {', '.join(ml.get('compute_resources', [])) or 'None found'}")
+    # Primary Field
+    print(f"\nPrimary Field: {extracted.get('primary_field', 'Unknown')}")
+
+    # ML Impact Analysis
+    ml_analysis = extracted.get('ml_impact_analysis', {})
+    print("\nML Impact Analysis:")
+    print(f"  Has ML Usage: {ml_analysis.get('has_ml_usage', False)}")
+    print(f"  ML Usage Type: {ml_analysis.get('ml_usage_type', 'unknown')}")
+    print(f"  Keyword Stuffing: {ml_analysis.get('is_keyword_stuffing', False)}")
+    print(f"  Maturity Level: {ml_analysis.get('maturity_level', 'unknown')}")
+    print(f"  ML Role: {ml_analysis.get('ml_role_description', 'N/A')[:100]}...")
+    print(f"  Impact Types: {', '.join(ml_analysis.get('impact_types', [])) or 'None'}")
+    print(f"  Key Takeaway: {ml_analysis.get('key_takeaway', 'N/A')}")
+
+    if ml_analysis.get('frameworks'):
+        print(f"  Frameworks: {', '.join(ml_analysis.get('frameworks', []))}")
+    if ml_analysis.get('datasets'):
+        print(f"  Datasets: {', '.join(ml_analysis.get('datasets', []))}")
+    if ml_analysis.get('models'):
+        print(f"  Models: {', '.join(ml_analysis.get('models', []))}")
 
     # Reproducibility
     repro = extracted.get('reproducibility', {})

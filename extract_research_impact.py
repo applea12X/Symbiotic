@@ -29,58 +29,87 @@ BATCH_SIZE = 10  # Process in batches
 SAVE_INTERVAL = 50  # Save progress every N papers
 
 # Extraction prompt template
-EXTRACTION_PROMPT = """You are a research analysis assistant. Analyze the following research paper and extract structured information in JSON format.
+EXTRACTION_PROMPT = """You are an expert academic analyst specializing in how machine learning (ML) impacts different academic fields. You evaluate papers with peer-review rigor and cross-disciplinary awareness.
 
 Paper ID: {paper_id}
 Year: {year}
-Field: {field}
+Suggested Field: {field}
 
 Paper Text (truncated if needed):
 {text}
 
+ANALYSIS PROCESS:
+1. Identify the primary academic field (correct the suggested field if needed).
+2. Detect ML usage - both explicit (models, algorithms, training) and implicit (automation, prediction, optimization).
+3. Validate ML relevance - check for keyword stuffing vs. substantive use.
+4. Classify ML impact type and maturity level.
+5. Extract additional research impact metrics.
+
 Extract the following information in valid JSON format:
 
 {{
+  "primary_field": "The actual primary academic field (may differ from suggested)",
+
+  "ml_impact_analysis": {{
+    "has_ml_usage": true/false,
+    "ml_usage_type": "explicit|implicit|minimal|none",
+    "is_keyword_stuffing": true/false,
+    "ml_role_description": "Concrete description of how ML is actually used or why its role is limited",
+    "impact_types": ["analytical_enhancement", "predictive_modeling", "decision_support", "discovery", "optimization", "representation_learning", "measurement_improvement"],
+    "maturity_level": "exploratory|applied|core|field_shaping|none",
+    "impact_on_field": "2-4 sentence expert summary of how ML changes or fails to change practices in this field",
+    "key_takeaway": "One-sentence insight for cross-disciplinary audience",
+    "frameworks": ["TensorFlow", "PyTorch", etc. - ONLY if actually used, not just mentioned"],
+    "compute_resources": ["GPU types, platforms - ONLY if substantively discussed"],
+    "datasets": ["Specific datasets - ONLY if used for training/evaluation"],
+    "models": ["Specific ML models/architectures - ONLY if implemented or evaluated"]
+  }},
+
   "citations": {{
-    "cited_papers": ["list of paper titles/authors mentioned in references"],
-    "citation_count_estimate": "estimated number based on references section"
+    "cited_papers": ["Sample of key paper titles/authors from references"],
+    "citation_count_estimate": "estimated number"
   }},
-  "ml_adoption": {{
-    "frameworks": ["TensorFlow", "PyTorch", "scikit-learn", etc.],
-    "compute_resources": ["GPU types", "cloud platforms", "HPC systems"],
-    "datasets": ["ImageNet", "COCO", "custom datasets", etc.],
-    "models": ["specific ML models or architectures used"]
-  }},
+
   "reproducibility": {{
     "code_available": true/false,
-    "code_url": "GitHub URL or repository if mentioned",
+    "code_url": "URL if mentioned",
     "data_available": true/false,
-    "data_url": "data repository URL if mentioned",
+    "data_url": "URL if mentioned",
     "has_supplementary": true/false,
     "mentions_replication": true/false
   }},
+
   "research_outcomes": {{
     "has_clinical_trial": true/false,
-    "clinical_trial_ids": ["NCT numbers if mentioned"],
+    "clinical_trial_ids": ["NCT numbers"],
     "has_patent": true/false,
-    "patent_numbers": ["patent numbers if mentioned"],
+    "patent_numbers": ["patent numbers"],
     "mentions_retraction": true/false,
     "mentions_correction": true/false
   }},
+
   "impact_indicators": {{
     "mentions_media_coverage": true/false,
     "mentions_policy_influence": true/false,
     "mentions_industry_adoption": true/false,
-    "real_world_applications": ["list of mentioned applications"]
+    "real_world_applications": ["concrete applications mentioned"]
   }},
+
   "additional_info": {{
-    "funding_sources": ["NSF", "NIH", "company names", etc.],
+    "funding_sources": ["NSF", "NIH", etc.],
     "collaborations": ["institutions", "companies"],
-    "keywords": ["extracted key technical terms"],
-    "methodology": "brief description of main methodology",
-    "main_findings": "brief summary of key findings"
+    "keywords": ["key technical terms"],
+    "methodology": "brief description",
+    "main_findings": "brief summary"
   }}
 }}
+
+CRITICAL RULES:
+- Be conservative; do not overstate ML importance
+- If ML keywords are present but not substantively used, mark is_keyword_stuffing as true
+- Only list frameworks/datasets/models if they are ACTUALLY USED, not just cited
+- Use precise academic language
+- If ML impact is weak or peripheral, state this explicitly in ml_role_description
 
 Return ONLY valid JSON. If information is not found, use null or empty arrays."""
 
