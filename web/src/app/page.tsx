@@ -49,7 +49,7 @@ export default function Home() {
       {selectedDiscipline && (
         <button
           onClick={handleBackToDisciplines}
-          className="fixed top-28 left-8 z-10 flex items-center gap-2.5 px-5 py-2.5 bg-white/5 hover:bg-white/10 backdrop-blur-xl border border-white/10 rounded-2xl transition-all duration-200 active:scale-95 shadow-lg group"
+          className="fixed top-6 left-32 z-10 flex items-center gap-2.5 px-5 py-3.5 bg-white/5 hover:bg-white/10 backdrop-blur-xl rounded-2xl transition-all duration-200 active:scale-95 shadow-lg group"
         >
           <ArrowLeft className="w-4 h-4 text-white/80 group-hover:text-white transition-colors" />
           <span className="text-sm font-medium text-white/90 group-hover:text-white transition-colors">Back to Disciplines</span>
