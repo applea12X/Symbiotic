@@ -95,3 +95,8 @@ body {
   border: 0 !important;
   background: transparent !important;
 }
+
+/* Prevent scroll chaining specifically for events list */
+.events-scroll-container {
+  overscroll-behavior: contain;
+}
