@@ -3,7 +3,30 @@ dataset/
 
 # Ignore ALL data (nothing in data/ will be pushed to GitHub)
 data/
+
+# Node modules
 node_modules/
+web/node_modules/
+
+# Next.js build outputs
+web/.next/
+web/out/
+.next/
+out/
+
+# Build outputs
+web/dist/
+dist/
+build/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Environment files
+.env
+.env.local
+.env.production.local
 
 # data
 *.json.gz
@@ -11,3 +34,15 @@ node_modules/
 
 # Test outputs
 test_extraction_output.json
+
+# Python cache
+__pycache__/
+*.pyc
+.Python
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
