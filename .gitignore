@@ -8,6 +8,7 @@ data/*/
 # Ignore individual uncompressed data directories
 data/papers/
 data/combined/
+data/combined_compressed/
 
 # But keep compressed files
 !data/**/*.gz

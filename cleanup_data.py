@@ -9,7 +9,7 @@ from tqdm import tqdm
 
 DATA_DIR = Path("data")
 OUTPUT_DIR = Path("data/papers")
-DECOMPRESS_GZ = True  # Set to False to keep .gz files compressed
+DECOMPRESS_GZ = True 
 
 def setup_output_dir():
     """Create the output directory if it doesn't exist."""
