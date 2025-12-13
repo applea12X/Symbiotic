@@ -1,7 +1,7 @@
 "use client";
 
 import { HelpCircle, Calendar, Quote, Award, Code, Database, RotateCcw, AlertTriangle, Building, Microscope, Newspaper, Scale } from "lucide-react";
-import { CaseEvent } from "@/data/mockCaseStudies";
+import { CaseEvent } from "@/data/realCaseStudies";
 
 interface EventDetailsProps {
   event: CaseEvent | null;

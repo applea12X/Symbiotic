@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import { Discipline, Paper } from "@/types";
 import { computeDisciplineSummary, computeGlobalAverages } from "@/utils/disciplineStats";
-import { MOCK_PAPERS } from "@/data/papers";
+import { REAL_PAPERS } from "@/data/realHeatmapData";
 import { MetricCard } from "./discipline-summary/MetricCard";
 import { DistributionBar } from "./discipline-summary/DistributionBar";
 import { TrendChart } from "./discipline-summary/TrendChart";
@@ -33,7 +33,7 @@ export function DisciplineSummaryPanel({
   const [showAllFrameworks, setShowAllFrameworks] = useState(false);
   const [showAllMethods, setShowAllMethods] = useState(false);
 
-  const globalAverages = useMemo(() => computeGlobalAverages(MOCK_PAPERS), []);
+  const globalAverages = useMemo(() => computeGlobalAverages(REAL_PAPERS), []);
 
   const summary = useMemo(() => {
     if (!discipline || papers.length === 0) {

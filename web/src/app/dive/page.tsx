@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Navigation } from "@/components/Navigation";
 import { Sidebar } from "@/components/Sidebar";
 import { ChatInterface } from "@/components/dive/ChatInterface";
-import { MOCK_PAPERS } from "@/data/papers";
+import { REAL_PAPERS } from "@/data/realHeatmapData";
 
 export default function DivePage() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -21,7 +21,7 @@ export default function DivePage() {
       <Sidebar
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
-        papers={MOCK_PAPERS}
+        papers={REAL_PAPERS}
       />
 
       <div className="h-full pt-24">

@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Calendar } from "lucide-react";
-import { CaseStudy, CaseEvent, CaseEventType } from "@/data/mockCaseStudies";
+import { CaseStudy, CaseEvent, CaseEventType } from "@/data/realCaseStudies";
 
 interface TimelineProps {
   caseStudy?: CaseStudy;

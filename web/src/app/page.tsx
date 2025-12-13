@@ -5,7 +5,7 @@ import { Navigation } from "@/components/Navigation";
 import { Sidebar } from "@/components/Sidebar";
 import { BubbleHeatmap } from "@/components/BubbleHeatmap";
 import { DisciplineSummaryPanel } from "@/components/DisciplineSummaryPanel";
-import { MOCK_PAPERS, MOCK_DISCIPLINES, getPapersByDiscipline } from "@/data/papers";
+import { REAL_PAPERS, REAL_DISCIPLINES, getPapersByDiscipline } from "@/data/realHeatmapData";
 import { FilterType, Discipline } from "@/types";
 import { ArrowLeft } from "lucide-react";
 
@@ -23,11 +23,11 @@ export default function Home() {
   };
 
   const currentPapers = selectedDiscipline
-    ? getPapersByDiscipline(selectedDiscipline.name, selectedDiscipline.startYear, selectedDiscipline.endYear)
-    : MOCK_PAPERS;
+    ? getPapersByDiscipline(REAL_PAPERS, selectedDiscipline.name, selectedDiscipline.startYear, selectedDiscipline.endYear)
+    : REAL_PAPERS;
 
   const [allowedCategories, setAllowedCategories] = useState<string[] | undefined>(
-    MOCK_DISCIPLINES.map(d => d.name)
+    REAL_DISCIPLINES.map(d => d.name)
   );
 
   const isPanelOpen = selectedDiscipline !== null;
@@ -85,7 +85,7 @@ export default function Home() {
 
         <BubbleHeatmap
           papers={selectedDiscipline ? currentPapers : undefined}
-          disciplines={selectedDiscipline ? undefined : MOCK_DISCIPLINES}
+          disciplines={selectedDiscipline ? undefined : REAL_DISCIPLINES}
           activeFilters={activeFilters}
           mode={selectedDiscipline ? "papers" : "disciplines"}
           onDisciplineClick={handleDisciplineClick}
