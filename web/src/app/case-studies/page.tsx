@@ -17,6 +17,7 @@ export default function CaseStudies() {
         activeFilter={activeFilter}
         onFilterChange={setActiveFilter}
         onToggleSidebar={() => setIsSidebarOpen(true)}
+        showFilters={false}
       />
 
       <Sidebar
