@@ -116,7 +116,7 @@ export function BubbleHeatmap({ papers, disciplines, activeFilters, mode, onDisc
           ...d,
           x: d.x || width * 0.1 + (d.impactScore / 100) * width * 0.8 + (Math.random() - 0.5) * 30, // Match force X positioning
           y: d.y || height / 2 + (Math.random() - 0.5) * 20,
-          r: Math.min(8 + (d.paperCount / 30) * 8, 10),
+          r: Math.min(16 + (d.paperCount / 30) * 12, 40), // Increased size: base 16, multiplier 12, max 40
           vx: d.vx || 0,
           vy: d.vy || 0,
           targetRadius: undefined,
@@ -126,7 +126,7 @@ export function BubbleHeatmap({ papers, disciplines, activeFilters, mode, onDisc
           ...p,
           x: p.x || width * 0.1 + (p.impactScore / 100) * width * 0.8 + (Math.random() - 0.5) * 30, // Match force X positioning
           y: p.y || height / 2 + (Math.random() - 0.5) * 50, // Further reduced vertical spread to 50
-          r: Math.min(4 + (p.impactScore / 100) * 6, 30), // Reduced size multiplier and capped at 14px
+          r: Math.min(8 + (p.impactScore / 100) * 12, 50), // Increased size: base 8, multiplier 12, max 50
           vx: p.vx || 0,
           vy: p.vy || 0,
           targetRadius: undefined,
