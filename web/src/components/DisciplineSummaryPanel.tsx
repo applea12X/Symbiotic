@@ -10,6 +10,8 @@ import {
   ChevronUp,
   Award,
   BarChart3,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { Discipline, Paper } from "@/types";
 import { computeDisciplineSummary, computeGlobalAverages } from "@/utils/disciplineStats";
@@ -23,15 +25,23 @@ interface DisciplineSummaryPanelProps {
   discipline: Discipline | null;
   papers: Paper[];
   isOpen: boolean;
+  isCollapsed?: boolean;
+  onCollapsedChange?: (collapsed: boolean) => void;
 }
 
 export function DisciplineSummaryPanel({
   discipline,
   papers,
   isOpen,
+  isCollapsed = false,
+  onCollapsedChange,
 }: DisciplineSummaryPanelProps) {
   const [showAllFrameworks, setShowAllFrameworks] = useState(false);
   const [showAllMethods, setShowAllMethods] = useState(false);
+
+  const handleCollapsedChange = (collapsed: boolean) => {
+    onCollapsedChange?.(collapsed);
+  };
 
   const globalAverages = useMemo(() => computeGlobalAverages(REAL_PAPERS), []);
 
@@ -90,21 +100,36 @@ export function DisciplineSummaryPanel({
   return (
     <motion.div
       initial={{ width: 0, opacity: 0 }}
-      animate={{ width: isOpen ? 384 : 0, opacity: isOpen ? 1 : 0 }}
+      animate={{ width: isOpen ? (isCollapsed ? 48 : 384) : 0, opacity: isOpen ? 1 : 0 }}
       transition={{ type: "spring", stiffness: 300, damping: 30 }}
       className="fixed top-0 left-0 h-full z-20 glass-panel overflow-hidden"
     >
-      <div className="h-full overflow-y-auto custom-scrollbar p-6">
-        {/* Header Section */}
-        <div className="mb-6">
-          <div className="flex items-center justify-end gap-2 mb-2">
-            <h2 className="text-xl font-bold text-white/95 text-right">{discipline.name}</h2>
-            <FileText className="w-5 h-5 text-white/70" />
-          </div>
-          <p className="text-xs text-white/50 text-right">
-            {discipline.yearRange} • {summary.totalPapers} papers
-          </p>
+      {/* Collapsed State - Vertical Tab */}
+      {isCollapsed && (
+        <div className="h-full flex items-center justify-center p-2">
+          <button
+            onClick={() => handleCollapsedChange(false)}
+            className="p-3 rounded-lg hover:bg-white/10 transition-colors group"
+            aria-label="Expand panel"
+          >
+            <ChevronRight className="w-5 h-5 text-white/60 group-hover:text-white/90" />
+          </button>
         </div>
+      )}
+
+      {/* Expanded State - Full Panel */}
+      {!isCollapsed && (
+        <div className="h-full overflow-y-auto custom-scrollbar p-6">
+          {/* Header Section */}
+          <div className="mb-6">
+            <div className="flex items-center justify-end gap-2 mb-2">
+              <h2 className="text-xl font-bold text-white/95 text-right">{discipline.name}</h2>
+              <FileText className="w-5 h-5 text-white/70" />
+            </div>
+            <p className="text-xs text-white/50 text-right">
+              {discipline.yearRange} • {summary.totalPapers} papers
+            </p>
+          </div>
 
         {/* Hero Metrics Cards */}
         <div className="space-y-3 mb-6">
@@ -342,7 +367,8 @@ export function DisciplineSummaryPanel({
             </div>
           </section>
         )}
-      </div>
+        </div>
+      )}
     </motion.div>
   );
 }
