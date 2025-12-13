@@ -25,6 +25,11 @@ export default function Home() {
     ? getPapersByDiscipline(selectedDiscipline.name, selectedDiscipline.startYear, selectedDiscipline.endYear)
     : MOCK_PAPERS;
 
+  const [allowedCategories, setAllowedCategories] = useState<string[] | undefined>(
+    MOCK_DISCIPLINES.map(d => d.name)
+  );
+
+
   return (
     <main className="min-h-screen bg-black text-white selection:bg-blue-500/30">
       <Navigation
@@ -65,6 +70,7 @@ export default function Home() {
         activeFilter={activeFilter}
         mode={selectedDiscipline ? "papers" : "disciplines"}
         onDisciplineClick={handleDisciplineClick}
+        allowedCategories={allowedCategories}
       />
     </main>
   );

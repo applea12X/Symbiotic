@@ -10,6 +10,7 @@ interface BubbleHeatmapProps {
   activeFilter: FilterType;
   mode: "papers" | "disciplines";
   onDisciplineClick?: (discipline: Discipline) => void;
+  allowedCategories?: string[];
 }
 
 // Extended types for dynamic expansion
@@ -25,16 +26,13 @@ interface ExtendedDiscipline extends Discipline {
 
 type ExtendedNode = ExtendedPaper | ExtendedDiscipline;
 
-export function BubbleHeatmap({ papers, disciplines, activeFilter, mode, onDisciplineClick }: BubbleHeatmapProps) {
+export function BubbleHeatmap({ papers, disciplines, activeFilter, mode, onDisciplineClick, allowedCategories }: BubbleHeatmapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const simulationRef = useRef<d3.Simulation<ExtendedNode, undefined> | null>(null);
   const [hoveredNode, setHoveredNode] = useState<ExtendedNode | null>(null);
   const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 });
 
-  // === PERFORMANCE DETECTION ===
-  // Detect low-power devices and adjust rendering quality
-  // Initialize with false (safe SSR default), detect on client mount
   const isLowPowerDevice = useRef<boolean>(false);
 
   // Detect device capabilities on mount (client-side only)
@@ -84,7 +82,16 @@ export function BubbleHeatmap({ papers, disciplines, activeFilter, mode, onDisci
 
   // Initialize simulation
   useEffect(() => {
-    const dataSource = mode === "disciplines" ? disciplines : papers;
+    const allowed = Array.isArray(allowedCategories) && allowedCategories.length > 0 ? allowedCategories : undefined;
+
+    const dataSource = (() => {
+      const src = mode === "disciplines" ? (disciplines || []) : (papers || []);
+      if (!allowed) return src;
+      return src.filter(item => {
+        if (mode === "disciplines") return allowed.includes((item as Discipline).name);
+        return allowed.includes((item as Paper).domain);
+      });
+    })();
     if (!canvasRef.current || !containerRef.current || !dataSource || dataSource.length === 0) return;
 
     const canvas = canvasRef.current;
@@ -118,7 +125,7 @@ export function BubbleHeatmap({ papers, disciplines, activeFilter, mode, onDisci
       : (papers || []).map(p => ({
           ...p,
           x: p.x || width * (p.impactScore / 100),
-          y: p.y || height / 2 + (Math.random() - 0.5) * 50,
+          y: p.y || height / 2 + (Math.random() - 0.5) * 80,
           r: 4 + (p.impactScore / 100) * 8,
           vx: p.vx || 0,
           vy: p.vy || 0,
@@ -213,8 +220,8 @@ export function BubbleHeatmap({ papers, disciplines, activeFilter, mode, onDisci
           const dx = nodeB.x - axPos;
           const dy = nodeB.y - ayPos;
           const dist = Math.sqrt(dx * dx + dy * dy);
-          const bRadius = nodeB.currentRadius || nodeB.r;
-          const minDist = aRadius + bRadius + 2;
+          const bRadius = nodeB.currentRadius || nodeB.r;          // Increase padding so bubbles sit slightly further apart
+          const minDist = aRadius + bRadius + 6;
 
           // If bubbles are overlapping, push them apart
           if (dist < minDist && dist > 0) {
@@ -454,13 +461,9 @@ export function BubbleHeatmap({ papers, disciplines, activeFilter, mode, onDisci
       // Center vertically
       simulation.force("y", d3.forceY(height / 2).strength(0.1));
     }
+    simulation.force("collide", d3.forceCollide<ExtendedNode>(d => (d.currentRadius || d.r || 5) + 6).strength(0.5));
 
-    // Collision detection - uses currentRadius for base collision avoidance
-    // Manual collision in render loop provides immediate response to expansion
-    simulation.force("collide", d3.forceCollide<ExtendedNode>(d => (d.currentRadius || d.r || 5) + 2).strength(0.3));
-
-    // Charge (repulsion)
-    simulation.force("charge", d3.forceManyBody().strength(-2));
+    simulation.force("charge", d3.forceManyBody().strength(-6));
 
     simulation.alpha(0.5).restart();
   };

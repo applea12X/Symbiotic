@@ -3,14 +3,18 @@ import { Paper, Discipline } from "@/types";
 export { type Paper, type Discipline };
 
 const domains = [
-  "Computer Vision",
-  "NLP",
-  "Robotics",
-  "Bioinformatics",
-  "Healthcare",
-  "Finance",
-  "Climate Science",
-  "Physics"
+  "Agricultural and Food Sciences",
+  "Biology",
+  "Chemistry",
+  "Computer Science",
+  "Economics",
+  "Engineering",
+  "Environmental Science",
+  "Mathematics",
+  "Medicine",
+  "Physics",
+  "Political Science",
+  "Psychology",
 ];
 
 const titles = [
