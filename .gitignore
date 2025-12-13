@@ -4,5 +4,9 @@ dataset/
 # Ignore ALL data (nothing in data/ will be pushed to GitHub)
 data/
 
+# data
+*.json.gz
+*.jsonl
+
 # Test outputs
 test_extraction_output.json
