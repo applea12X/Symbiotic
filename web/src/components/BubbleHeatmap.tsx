@@ -114,9 +114,9 @@ export function BubbleHeatmap({ papers, disciplines, activeFilter, mode, onDisci
     const extendedNodes: ExtendedNode[] = mode === "disciplines"
       ? (disciplines || []).map(d => ({
           ...d,
-          x: d.x || width * (d.impactScore / 100) + (Math.random() - 0.5) * 200, // Added horizontal spread
-          y: d.y || height / 2 + (Math.random() - 0.5) * 80, // Reduced vertical spread to 80
-          r: Math.min(8 + (d.paperCount / 30) * 8, 20), // Reduced max size and capped at 20px
+          x: d.x || width * (d.impactScore / 50) + (Math.random() - 0.1) * 20000, // Increased horizontal spread from 200 to 350
+          y: d.y || height / 2 + (Math.random() - 0.5) * 20, 
+          r: Math.min(8 + (d.paperCount / 30) * 8, 10), 
           vx: d.vx || 0,
           vy: d.vy || 0,
           targetRadius: undefined,
@@ -124,9 +124,9 @@ export function BubbleHeatmap({ papers, disciplines, activeFilter, mode, onDisci
         } as ExtendedDiscipline))
       : (papers || []).map(p => ({
           ...p,
-          x: p.x || width * (p.impactScore / 100) + (Math.random() - 0.5) * 250, // Added horizontal spread
-          y: p.y || height / 2 + (Math.random() - 0.5) * 100, // Reduced vertical spread to 100
-          r: Math.min(4 + (p.impactScore / 100) * 6, 14), // Reduced size multiplier and capped at 14px
+          x: p.x || width * (p.impactScore / 50) + (Math.random() - 0.1) * 20000, // Increased horizontal spread from 250 to 400
+          y: p.y || height / 2 + (Math.random() - 0.5) * 50, // Further reduced vertical spread to 50
+          r: Math.min(4 + (p.impactScore / 100) * 6, 30), // Reduced size multiplier and capped at 14px
           vx: p.vx || 0,
           vy: p.vy || 0,
           targetRadius: undefined,
@@ -435,17 +435,17 @@ export function BubbleHeatmap({ papers, disciplines, activeFilter, mode, onDisci
 
     // Configure Forces
 
-    // Force X: Always map impact score to X position (very weak for horizontal spread)
-    simulation.force("x", d3.forceX<ExtendedNode>(d => width * 0.1 + (d.impactScore / 100) * width * 0.8).strength(0.08)); // Further reduced to 0.08 for more horizontal freedom
+    // Force X: Very weak for maximum horizontal spread based on impact score
+    simulation.force("x", d3.forceX<ExtendedNode>(d => width * 0.1 + (d.impactScore / 100) * width * 0.8).strength(0.04)); // Further reduced to 0.04 for even more horizontal freedom
 
-    // Force Y: Depends on filter and mode (stronger to keep vertically centered)
+    // Force Y: Strong to keep vertically tight and centered
     if (activeFilter === "code") {
       if (mode === "papers") {
         // Split vertically by code availability (papers mode)
         simulation.force("y", d3.forceY<ExtendedNode>(d => {
           const isPaper = 'codeAvailable' in d;
           return isPaper && d.codeAvailable ? height * 0.35 : height * 0.65;
-        }).strength(0.15)); // Increased from 0.05 to 0.15
+        }).strength(0.25)); // Increased from 0.15 to 0.25 for tighter vertical grouping
       } else {
         // Split vertically by code availability percentage (disciplines mode)
         simulation.force("y", d3.forceY<ExtendedNode>(d => {
@@ -455,11 +455,11 @@ export function BubbleHeatmap({ papers, disciplines, activeFilter, mode, onDisci
             return height * 0.3 + (1 - codeRatio) * height * 0.4;
           }
           return height / 2;
-        }).strength(0.15)); // Increased from 0.05 to 0.15
+        }).strength(0.25)); // Increased from 0.15 to 0.25
       }
     } else {
-      // Center vertically - stronger force to avoid white space
-      simulation.force("y", d3.forceY(height / 2).strength(0.12)); // Increased from 0.02 to 0.12
+      // Center vertically - very strong force for tight horizontal band
+      simulation.force("y", d3.forceY(height / 2).strength(0.20)); // Increased from 0.12 to 0.20 for minimal vertical spread
     }
     simulation.force("collide", d3.forceCollide<ExtendedNode>(d => (d.currentRadius || d.r || 5) + 12).strength(0.7)); // Increased padding from 6 to 12, strength from 0.5 to 0.7
 
