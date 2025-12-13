@@ -36,7 +36,6 @@ export default function Home() {
         activeFilters={activeFilters}
         onFilterChange={setActiveFilters}
         onToggleSidebar={() => setIsSidebarOpen(true)}
-        showFilters={!selectedDiscipline}
       />
 
       <Sidebar
