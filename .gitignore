@@ -1,18 +1,8 @@
 # Dataset folder
 dataset/
 
-# Data folders - ignore uncompressed versions
-data/papers/
-data/combined/
-
-# Extracted impact data (large, LLM-generated)
-data/extracted_impact/
-
-# Keep compressed files and analysis results
-data/combined_compressed/
-data/combined_compressed/**/*.gz
-data/analysis/
-data/analysis/**
+# Ignore ALL data (nothing in data/ will be pushed to GitHub)
+data/
 
 # Test outputs
 test_extraction_output.json
