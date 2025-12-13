@@ -1,0 +1,62 @@
+{
+  "Agricultural and Food Sciences": {
+    "paperCount": 716,
+    "avgImpact": 66.67811452513972,
+    "codeAvailableCount": 4
+  },
+  "Biology": {
+    "paperCount": 19222,
+    "avgImpact": 74.11841691810581,
+    "codeAvailableCount": 881
+  },
+  "Chemistry": {
+    "paperCount": 432,
+    "avgImpact": 70.48569444444435,
+    "codeAvailableCount": 5
+  },
+  "Computer Science": {
+    "paperCount": 727,
+    "avgImpact": 73.64536451169232,
+    "codeAvailableCount": 101
+  },
+  "Economics": {
+    "paperCount": 663,
+    "avgImpact": 71.32138763197585,
+    "codeAvailableCount": 12
+  },
+  "Engineering": {
+    "paperCount": 667,
+    "avgImpact": 69.18886056971522,
+    "codeAvailableCount": 9
+  },
+  "Environmental Science": {
+    "paperCount": 478,
+    "avgImpact": 68.68709205020927,
+    "codeAvailableCount": 15
+  },
+  "Mathematics": {
+    "paperCount": 881,
+    "avgImpact": 57.89952326901266,
+    "codeAvailableCount": 7
+  },
+  "Medicine": {
+    "paperCount": 16489,
+    "avgImpact": 50.7339680999492,
+    "codeAvailableCount": 15
+  },
+  "Physics": {
+    "paperCount": 53103,
+    "avgImpact": 66.04475170898783,
+    "codeAvailableCount": 801
+  },
+  "Political Science": {
+    "paperCount": 217,
+    "avgImpact": 71.05820276497705,
+    "codeAvailableCount": 1
+  },
+  "Psychology": {
+    "paperCount": 33209,
+    "avgImpact": 75.96479478451909,
+    "codeAvailableCount": 811
+  }
+}
