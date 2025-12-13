@@ -53,12 +53,19 @@ export function BubbleHeatmap({ papers, activeFilter }: BubbleHeatmapProps) {
     simulationVelocityDecay: isLowPowerDevice.current ? 0.4 : 0.2, // More damping on low-end
   };
 
+  // === VISUALIZATION MODE STATE MACHINE ===
+  // Prevents state collision between parent and nested systems
+  type VisualizationMode = 'MODE_OVERVIEW' | 'MODE_EXPANDING' | 'MODE_EXPANDED' | 'MODE_COLLAPSING';
+  const [visualizationMode, setVisualizationMode] = useState<VisualizationMode>('MODE_OVERVIEW');
+
   // Expansion state management
   const [selectedPaper, setSelectedPaper] = useState<ExtendedPaper | null>(null);
-  const [isExpanded, setIsExpanded] = useState(false);
   const [expandProgress, setExpandProgress] = useState(0);
   const expandProgressRef = useRef(0); // Ref for accessing current progress in render loop
   const expandAnimationRef = useRef<number | null>(null);
+
+  // Preserved state for reverse transition
+  const preservedStateRef = useRef<ExtendedPaper[] | null>(null);
 
   // Sync expandProgress to ref for render loop access
   useEffect(() => {
@@ -84,16 +91,23 @@ export function BubbleHeatmap({ papers, activeFilter }: BubbleHeatmapProps) {
     canvas.style.height = `${height}px`;
     ctx.scale(dpr, dpr);
 
-    // Initialize node positions if not set
-    const extendedPapers = papers as ExtendedPaper[];
+    // === STATE ISOLATION: Create deep copy to avoid mutating props ===
+    // This prevents corruption when transitioning between modes
+    const extendedPapers: ExtendedPaper[] = papers.map(p => ({
+      ...p,
+      x: p.x || width * (p.impactScore / 100),
+      y: p.y || height / 2 + (Math.random() - 0.5) * 50,
+      r: 4 + (p.impactScore / 100) * 8,
+      vx: p.vx || 0,
+      vy: p.vy || 0,
+      targetRadius: undefined,
+      currentRadius: undefined,
+    }));
+
+    // Initialize dynamic properties
     extendedPapers.forEach(p => {
-      if (!p.x) {
-        p.x = width * (p.impactScore / 100);
-        p.y = height / 2 + (Math.random() - 0.5) * 50;
-      }
-      p.r = 4 + (p.impactScore / 100) * 8; // Base radius (4 to 12)
-      p.targetRadius = p.r; // Initialize target radius
-      p.currentRadius = p.r; // Initialize interpolated radius
+      p.targetRadius = p.r;
+      p.currentRadius = p.r;
     });
 
     // Color scale: Blue (low) -> Purple -> Red (high)
@@ -125,11 +139,19 @@ export function BubbleHeatmap({ papers, activeFilter }: BubbleHeatmapProps) {
 
     // Render loop with cursor-driven expansion
     const tick = () => {
+      // === MODE-AWARE RENDERING ===
+      // Only render if in overview mode or expanding (not when fully expanded)
+      const currentMode = visualizationMode;
+      if (currentMode === 'MODE_EXPANDED') {
+        // Fully expanded - nested view is active, parent system is frozen
+        return;
+      }
+
       ctx.clearRect(0, 0, width, height);
 
       // === CURSOR-DRIVEN EXPANSION WITH FORCE PROPAGATION ===
       // First pass: Update all bubble target radii based on cursor (disabled during expansion)
-      if (!isExpanded) {
+      if (currentMode === 'MODE_OVERVIEW') {
         extendedPapers.forEach(node => {
           if (!node.x || !node.y || !node.r) return;
 
@@ -189,21 +211,22 @@ export function BubbleHeatmap({ papers, activeFilter }: BubbleHeatmapProps) {
       // Third pass: Render all bubbles
       // Apply fade and blur effects during expansion
       const currentExpandProgress = expandProgressRef.current;
-      const fadeOpacity = isExpanded ? Math.max(0, 1 - currentExpandProgress * 1.2) : 1;
-      const blurAmount = isExpanded ? currentExpandProgress * 8 : 0; // Gradually blur up to 8px
+      const isExpanding = currentMode === 'MODE_EXPANDING' || currentMode === 'MODE_COLLAPSING';
+      const fadeOpacity = isExpanding ? Math.max(0, 1 - currentExpandProgress * 1.2) : 1;
+      const blurAmount = isExpanding ? currentExpandProgress * 8 : 0; // Gradually blur up to 8px
 
       extendedPapers.forEach(node => {
         if (!node.x || !node.y || !node.r) return;
 
         // Gentle floaty motion - add noise to velocity (disabled during expansion or on low-power devices)
-        if (!isExpanded && performanceMode.enableFloatyMotion) {
+        if (currentMode === 'MODE_OVERVIEW' && performanceMode.enableFloatyMotion) {
           node.vx = (node.vx || 0) + (Math.random() - 0.5) * 0.05;
           node.vy = (node.vy || 0) + (Math.random() - 0.5) * 0.05;
         }
 
         // Draw bubble
         ctx.beginPath();
-        const isHovered = hoveredNode && hoveredNode.id === node.id && !isExpanded;
+        const isHovered = hoveredNode && hoveredNode.id === node.id && currentMode === 'MODE_OVERVIEW';
 
         // Use currentRadius for rendering (smooth expansion)
         const radius = isHovered
@@ -297,8 +320,8 @@ export function BubbleHeatmap({ papers, activeFilter }: BubbleHeatmapProps) {
 
     // Click handler for bubble expansion
     const handleClick = (e: MouseEvent) => {
-      // Don't handle clicks if already expanded
-      if (isExpanded) return;
+      // MODE-AWARE: Only handle clicks in overview mode
+      if (visualizationMode !== 'MODE_OVERVIEW') return;
 
       const rect = canvas.getBoundingClientRect();
       const clickX = e.clientX - rect.left;
@@ -321,7 +344,15 @@ export function BubbleHeatmap({ papers, activeFilter }: BubbleHeatmapProps) {
       });
 
       if (clickedBubble) {
+        // === TRANSITION SEQUENCING: Step 1 - Preserve state ===
+        preservedStateRef.current = extendedPapers.map(p => ({ ...p }));
+
+        // === Step 2 - Freeze parent physics ===
+        simulation.stop();
+
+        // === Step 3 - Set selected paper and trigger expansion ===
         setSelectedPaper(clickedBubble);
+        setVisualizationMode('MODE_EXPANDING');
         startExpansionAnimation();
       }
     };
@@ -331,16 +362,24 @@ export function BubbleHeatmap({ papers, activeFilter }: BubbleHeatmapProps) {
     canvas.addEventListener("click", handleClick);
 
     return () => {
+      // === CLEANUP SEQUENCING ===
+      // Stop simulation first to prevent ticks during cleanup
       simulation.stop();
+
+      // Remove event listeners
       window.removeEventListener("resize", handleResize);
       canvas.removeEventListener("mousemove", handleMouseMove);
       canvas.removeEventListener("mouseleave", handleMouseLeave);
       canvas.removeEventListener("click", handleClick);
+
+      // Cancel any pending animation frames
       if (expandAnimationRef.current) {
         cancelAnimationFrame(expandAnimationRef.current);
       }
     };
-  }, [papers, isExpanded]); // Re-run if papers or expansion state changes
+    // CRITICAL: Only depend on [papers]
+    // DO NOT add isExpanded or visualizationMode - causes infinite loop
+  }, [papers]);
 
   // Update forces when filter changes
   const updateForces = () => {
@@ -379,8 +418,14 @@ export function BubbleHeatmap({ papers, activeFilter }: BubbleHeatmapProps) {
   }, [activeFilter, papers]); // Update when filter changes
 
   // === EXPANSION ANIMATION FUNCTIONS ===
+  // Manages transition from MODE_EXPANDING → MODE_EXPANDED
   const startExpansionAnimation = () => {
-    setIsExpanded(true);
+    // Cancel any existing animation first
+    if (expandAnimationRef.current) {
+      cancelAnimationFrame(expandAnimationRef.current);
+      expandAnimationRef.current = null;
+    }
+
     let startTime: number | null = null;
     const duration = 600; // 600ms as per spec
 
@@ -396,14 +441,27 @@ export function BubbleHeatmap({ papers, activeFilter }: BubbleHeatmapProps) {
       if (progress < 1) {
         expandAnimationRef.current = requestAnimationFrame(animate);
       } else {
+        // === TRANSITION SEQUENCING: Animation complete ===
         expandAnimationRef.current = null;
+        // Transition to fully expanded mode - nested view takes over
+        setVisualizationMode('MODE_EXPANDED');
       }
     };
 
     expandAnimationRef.current = requestAnimationFrame(animate);
   };
 
+  // Manages transition from MODE_EXPANDED → MODE_OVERVIEW
   const handleCollapse = () => {
+    // === TRANSITION SEQUENCING: Step 1 - Enter collapsing mode ===
+    setVisualizationMode('MODE_COLLAPSING');
+
+    // Cancel any existing animation
+    if (expandAnimationRef.current) {
+      cancelAnimationFrame(expandAnimationRef.current);
+      expandAnimationRef.current = null;
+    }
+
     let startTime: number | null = null;
     const duration = 600;
     const startProgress = expandProgress;
@@ -420,10 +478,21 @@ export function BubbleHeatmap({ papers, activeFilter }: BubbleHeatmapProps) {
       if (progress < 1) {
         expandAnimationRef.current = requestAnimationFrame(animate);
       } else {
+        // === TRANSITION SEQUENCING: Step 2 - Animation complete ===
         expandAnimationRef.current = null;
-        setIsExpanded(false);
-        setSelectedPaper(null);
         setExpandProgress(0);
+        setSelectedPaper(null);
+
+        // === Step 3 - Restore parent system ===
+        // Restore preserved state if available
+        if (preservedStateRef.current && simulationRef.current) {
+          // Restore positions (state is already preserved in simulation)
+          // Restart parent physics loop
+          simulationRef.current.alpha(0.3).restart();
+        }
+
+        // === Step 4 - Return to overview mode ===
+        setVisualizationMode('MODE_OVERVIEW');
       }
     };
 
@@ -472,7 +541,7 @@ export function BubbleHeatmap({ papers, activeFilter }: BubbleHeatmapProps) {
 
       {/* Tooltip */}
       <AnimatePresence>
-        {hoveredNode && !isExpanded && (
+        {hoveredNode && visualizationMode === 'MODE_OVERVIEW' && (
           <motion.div
             initial={{ opacity: 0, scale: 0.9, y: 10 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -513,13 +582,13 @@ export function BubbleHeatmap({ papers, activeFilter }: BubbleHeatmapProps) {
 
       {/* Expanded View Overlay */}
       <AnimatePresence>
-        {selectedPaper && (
+        {selectedPaper && visualizationMode !== 'MODE_OVERVIEW' && (
           <ExpandedView
             paper={selectedPaper}
             containerRef={containerRef}
             progress={expandProgress}
             onClose={handleCollapse}
-            isExpanded={isExpanded}
+            isFullyExpanded={visualizationMode === 'MODE_EXPANDED'}
           />
         )}
       </AnimatePresence>
@@ -533,10 +602,10 @@ interface ExpandedViewProps {
   containerRef: React.RefObject<HTMLDivElement | null>;
   progress: number;
   onClose: () => void;
-  isExpanded: boolean;
+  isFullyExpanded: boolean;
 }
 
-function ExpandedView({ paper, containerRef, progress, onClose, isExpanded }: ExpandedViewProps) {
+function ExpandedView({ paper, containerRef, progress, onClose, isFullyExpanded }: ExpandedViewProps) {
   // Calculate bubble color based on position
   const getBubbleColor = () => {
     if (!containerRef.current || !paper.x) return "#3b82f6";
@@ -585,7 +654,7 @@ function ExpandedView({ paper, containerRef, progress, onClose, isExpanded }: Ex
       exit={{ opacity: 0 }}
       transition={{ duration: 0.3 }}
       className="fixed inset-0 z-50"
-      style={{ pointerEvents: isExpanded ? "auto" : "none" }}
+      style={{ pointerEvents: isFullyExpanded ? "auto" : "none" }}
     >
       {/* Expanding circle that fills the screen */}
       <div
