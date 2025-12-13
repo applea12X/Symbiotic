@@ -8,14 +8,14 @@ import { MOCK_PAPERS } from "@/data/papers";
 import { FilterType } from "@/types";
 
 export default function CaseStudies() {
-  const [activeFilter, setActiveFilter] = useState<FilterType>("impact");
+  const [activeFilters, setActiveFilters] = useState<FilterType>([]);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   return (
     <main className="min-h-screen bg-black text-white selection:bg-blue-500/30">
       <Navigation
-        activeFilter={activeFilter}
-        onFilterChange={setActiveFilter}
+        activeFilters={activeFilters}
+        onFilterChange={setActiveFilters}
         onToggleSidebar={() => setIsSidebarOpen(true)}
         showFilters={false}
       />
