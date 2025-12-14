@@ -937,7 +937,7 @@ function ExpandedView({ paper, containerRef, progress, onClose, isFullyExpanded 
                     style={{
                       background: ['none', 'minimal', 'moderate', 'substantial', 'core'].indexOf(paper.mlImpact || 'none') >=
                         ['none', 'minimal', 'moderate', 'substantial', 'core'].indexOf(level)
-                        ? `linear-gradient(90deg, ${bubbleColor}, ${bubbleColor}dd)`
+                        ? 'linear-gradient(90deg, #22c55e, #22c55edd)'
                         : '#ffffff20'
                     }}
                   />
@@ -1010,12 +1010,6 @@ function ExpandedView({ paper, containerRef, progress, onClose, isFullyExpanded 
             </div>
           </div>
 
-          {/* Graph Visualization */}
-          <div className="p-6 rounded-xl bg-white/5 border border-white/10">
-            <h3 className="text-sm font-semibold text-white/60 uppercase tracking-wide mb-4">Impact Metrics</h3>
-            <ImpactMetricsChart paper={paper} bubbleColor={bubbleColor} />
-          </div>
-
           {/* Summary Box at Bottom */}
           <div className="p-6 rounded-xl bg-white/5 border border-white/10">
             <h3 className="text-sm font-semibold text-white/60 uppercase tracking-wide mb-3">Summary</h3>
@@ -1043,7 +1037,7 @@ function ImpactMetricsChart({ paper, bubbleColor }: ImpactMetricsChartProps) {
       value: paper.impactScore,
       displayValue: paper.mlImpact || 'none',
       maxValue: 100,
-      color: bubbleColor,
+      color: "#22c55e", // Green color
     },
     {
       label: "Citations",
