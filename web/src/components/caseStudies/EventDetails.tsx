@@ -1,7 +1,7 @@
 "use client";
 
 import { HelpCircle, Calendar, Quote, Award, Code, Database, RotateCcw, AlertTriangle, Building, Microscope, Newspaper, Scale } from "lucide-react";
-import { CaseEvent } from "@/data/mockCaseStudies";
+import { CaseEvent } from "@/data/realCaseStudies";
 
 interface EventDetailsProps {
   event: CaseEvent | null;
@@ -104,7 +104,7 @@ export function EventDetails({ event }: EventDetailsProps) {
             <div className="flex justify-between items-center">
               <span className="text-sm text-white/70">Acceleration</span>
               <span className={`font-mono ${event.accelerationMonths > 0 ? "text-green-400" : "text-red-400"}`}>
-                {event.accelerationMonths > 0 ? "+" : ""}{event.accelerationMonths} months
+                {event.accelerationMonths > 0 ? "+" : ""}{Number(event.accelerationMonths.toFixed(3))} months
               </span>
             </div>
             

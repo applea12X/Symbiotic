@@ -4,13 +4,13 @@ import { useState } from "react";
 import { CaseList } from "./CaseList";
 import { Timeline } from "./Timeline";
 import { EventDetails } from "./EventDetails";
-import { MOCK_CASE_STUDIES, getEventsByCaseId, getEventById } from "@/data/mockCaseStudies";
+import { REAL_CASE_STUDIES, getEventsByCaseId, getEventById } from "@/data/realCaseStudies";
 
 export function CaseStudiesPage() {
-  const [selectedCaseId, setSelectedCaseId] = useState<string>(MOCK_CASE_STUDIES[0].id);
+  const [selectedCaseId, setSelectedCaseId] = useState<string>(REAL_CASE_STUDIES[0].id);
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
 
-  const selectedCase = MOCK_CASE_STUDIES.find(cs => cs.id === selectedCaseId);
+  const selectedCase = REAL_CASE_STUDIES.find(cs => cs.id === selectedCaseId);
   const caseEvents = getEventsByCaseId(selectedCaseId);
   const selectedEvent = selectedEventId ? getEventById(selectedEventId) || null : null;
 
@@ -21,8 +21,8 @@ export function CaseStudiesPage() {
         {/* Left Panel - Case List */}
         <div className="lg:col-span-3 order-2 lg:order-1">
           <div className="glass rounded-2xl p-6 h-full flex flex-col">
-            <CaseList 
-              cases={MOCK_CASE_STUDIES}
+            <CaseList
+              cases={REAL_CASE_STUDIES}
               selectedCaseId={selectedCaseId}
               onCaseSelect={setSelectedCaseId}
             />

@@ -1,7 +1,12 @@
 import { FindingsData } from "@/types/findings";
+import { loadRealFindingsData } from "./realDataLoader";
 
-// Mock data representing quantitative findings about ML's impact on scientific progress
-export const FINDINGS_DATA: FindingsData = {
+// Real data from validation metrics analysis
+export const FINDINGS_DATA: FindingsData = loadRealFindingsData();
+
+// Legacy mock data (commented out for reference)
+/*
+export const FINDINGS_DATA_MOCK: FindingsData = {
   globalMetrics: {
     mlPenetration: 34.2,
     discoveryAcceleration: 8.3,
@@ -361,3 +366,4 @@ export const FINDINGS_DATA: FindingsData = {
     },
   ],
 };
+*/

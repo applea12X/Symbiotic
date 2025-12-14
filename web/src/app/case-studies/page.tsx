@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Navigation } from "@/components/Navigation";
 import { Sidebar } from "@/components/Sidebar";
 import { CaseStudiesPage } from "@/components/caseStudies/CaseStudiesPage";
-import { MOCK_PAPERS } from "@/data/papers";
+import { REAL_PAPERS } from "@/data/paperDataLoader";
 import { FilterType } from "@/types";
 
 export default function CaseStudies() {
@@ -23,7 +23,7 @@ export default function CaseStudies() {
       <Sidebar
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
-        papers={MOCK_PAPERS}
+        papers={REAL_PAPERS}
       />
 
       <CaseStudiesPage />

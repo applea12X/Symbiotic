@@ -1,7 +1,10 @@
+export type MLImpact = 'none' | 'minimal' | 'moderate' | 'substantial' | 'core';
+
 export interface Paper {
   id: string;
   title: string;
-  impactScore: number; // 0 to 100
+  mlImpact: MLImpact; // Word-based ML impact category
+  impactScore: number; // 0 to 100 (derived from mlImpact for compatibility)
   codeAvailable: boolean;
   year: number;
   citations: number;
@@ -36,3 +39,48 @@ export interface Discipline {
 
 export type FilterOption = "impact" | "code";
 export type FilterType = FilterOption[];
+
+// Discipline Summary Types
+export interface DisciplineSummary {
+  // Basic Stats
+  totalPapers: number;
+  papersWithCode: number;
+  codeAvailabilityRate: number;
+  avgImpactScore: number;
+
+  // Year Distribution
+  yearDistribution: { year: number; count: number }[];
+
+  // Impact Distribution
+  impactDistribution: { low: number; medium: number; high: number };
+
+  // Framework Analysis
+  topFrameworks: { name: string; count: number; percentage: number }[];
+  allFrameworks: { name: string; count: number }[];
+
+  // Methods Analysis
+  topMethods: { name: string; count: number; percentage: number }[];
+  allMethods: { name: string; count: number }[];
+
+  // Citation Stats
+  totalCitations: number;
+  avgCitations: number;
+  citationDistribution: { range: string; count: number }[];
+
+  // Temporal Trends
+  impactOverTime: { year: number; avgImpact: number }[];
+  codeAvailabilityOverTime: { year: number; percentage: number }[];
+
+  // Comparative Metrics
+  vsGlobal: {
+    impactDelta: number;
+    codeDelta: number;
+    citationDelta: number;
+  };
+}
+
+export interface GlobalAverages {
+  avgImpactScore: number;
+  avgCodeAvailability: number;
+  avgCitations: number;
+}

@@ -32,6 +32,7 @@ export function BubbleHeatmap({ papers, disciplines, activeFilters, mode, onDisc
   const simulationRef = useRef<d3.Simulation<ExtendedNode, undefined> | null>(null);
   const [hoveredNode, setHoveredNode] = useState<ExtendedNode | null>(null);
   const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 });
+  const tooltipRef = useRef<HTMLDivElement>(null);
 
   const isLowPowerDevice = useRef<boolean>(false);
 
@@ -116,7 +117,7 @@ export function BubbleHeatmap({ papers, disciplines, activeFilters, mode, onDisc
           ...d,
           x: d.x || width * 0.1 + (d.impactScore / 100) * width * 0.8 + (Math.random() - 0.5) * 30, // Match force X positioning
           y: d.y || height / 2 + (Math.random() - 0.5) * 20,
-          r: Math.min(8 + (d.paperCount / 30) * 8, 10),
+          r: Math.min(16 + (d.paperCount / 30) * 12, 40), // Increased size: base 16, multiplier 12, max 40
           vx: d.vx || 0,
           vy: d.vy || 0,
           targetRadius: undefined,
@@ -126,7 +127,7 @@ export function BubbleHeatmap({ papers, disciplines, activeFilters, mode, onDisc
           ...p,
           x: p.x || width * 0.1 + (p.impactScore / 100) * width * 0.8 + (Math.random() - 0.5) * 30, // Match force X positioning
           y: p.y || height / 2 + (Math.random() - 0.5) * 50, // Further reduced vertical spread to 50
-          r: Math.min(4 + (p.impactScore / 100) * 6, 30), // Reduced size multiplier and capped at 14px
+          r: Math.min(8 + (p.impactScore / 100) * 12, 50), // Increased size: base 8, multiplier 12, max 50
           vx: p.vx || 0,
           vy: p.vy || 0,
           targetRadius: undefined,
@@ -139,12 +140,12 @@ export function BubbleHeatmap({ papers, disciplines, activeFilters, mode, onDisc
       node.currentRadius = node.r;
     });
 
-    // Color scale: Blue (low) -> Purple -> Red (high)
+    // Color scale: Blue (low impact) -> Purple -> Red (high impact)
     // We can use interpolateSpectral reversed, or similar.
-    // interpolateRdBu: Red (0) -> Blue (1). We want Blue (left) -> Red (right).
+    // interpolateRdBu: Red (0) -> Blue (1). We want Blue (low) -> Red (high).
     // So we want input 1 (Blue) -> 0 (Red).
     const colorScale = d3.scaleSequential((t) => d3.interpolateRdBu(1 - t))
-      .domain([0, width]);
+      .domain([0, 100]); // Map to impact score range 0-100
 
     // Force simulation with extended nodes
     // Performance-aware: faster settling on low-power devices
@@ -264,14 +265,14 @@ export function BubbleHeatmap({ papers, disciplines, activeFilters, mode, onDisc
 
         ctx.arc(node.x, node.y, radius, 0, 2 * Math.PI);
 
-        // Fill with gradient color based on X position
-        ctx.fillStyle = colorScale(node.x);
+        // Fill with gradient color based on impact score
+        ctx.fillStyle = colorScale(node.impactScore);
 
         // Add glow/softness (performance-aware blur, enhanced during expansion)
         const baseBlur = isHovered ? performanceMode.shadowBlurHover : performanceMode.shadowBlur;
         const expandedBlur = performanceMode.shadowBlurExpanded;
         ctx.shadowBlur = blurAmount > 0 ? expandedBlur : baseBlur;
-        ctx.shadowColor = colorScale(node.x);
+        ctx.shadowColor = colorScale(node.impactScore);
 
         // Opacity (fade during expansion, normal otherwise)
         const baseOpacity = isHovered ? 1 : 0.7;
@@ -693,14 +694,29 @@ export function BubbleHeatmap({ papers, disciplines, activeFilters, mode, onDisc
       <AnimatePresence>
         {hoveredNode && visualizationMode === 'MODE_OVERVIEW' && (
           <motion.div
+            ref={tooltipRef}
             initial={{ opacity: 0, scale: 0.9, y: 10 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 10 }}
             transition={{ duration: 0.15 }}
             style={{
               position: "fixed",
-              left: tooltipPos.x + 20,
-              top: tooltipPos.y - 20,
+              left: (() => {
+                // Smart positioning: check if tooltip would go off-screen
+                if (typeof window === 'undefined') return tooltipPos.x + 20;
+                const tooltipWidth = tooltipRef.current?.offsetWidth || 320; // max-w-xs ~ 320px
+                const offset = 20;
+                const wouldOverflowRight = tooltipPos.x + offset + tooltipWidth > window.innerWidth;
+                return wouldOverflowRight ? tooltipPos.x - tooltipWidth - offset : tooltipPos.x + offset;
+              })(),
+              top: (() => {
+                // Smart positioning: check if tooltip would go off-screen vertically
+                if (typeof window === 'undefined') return tooltipPos.y - 20;
+                const tooltipHeight = tooltipRef.current?.offsetHeight || 200;
+                const offset = 20;
+                const wouldOverflowBottom = tooltipPos.y + tooltipHeight > window.innerHeight;
+                return wouldOverflowBottom ? tooltipPos.y - tooltipHeight - offset : tooltipPos.y - offset;
+              })(),
               pointerEvents: "none",
               zIndex: 50,
             }}
@@ -783,12 +799,10 @@ interface ExpandedViewProps {
 }
 
 function ExpandedView({ paper, containerRef, progress, onClose, isFullyExpanded }: ExpandedViewProps) {
-  // Calculate bubble color based on position
+  // Calculate bubble color based on impact score
   const getBubbleColor = () => {
-    if (!containerRef.current || !paper.x) return "#3b82f6";
-    const width = containerRef.current.clientWidth;
-    const colorScale = d3.scaleSequential((t) => d3.interpolateRdBu(1 - t)).domain([0, width]);
-    return colorScale(paper.x);
+    const colorScale = d3.scaleSequential((t) => d3.interpolateRdBu(1 - t)).domain([0, 100]);
+    return colorScale(paper.impactScore);
   };
 
   const bubbleColor = getBubbleColor();
@@ -904,19 +918,30 @@ function ExpandedView({ paper, containerRef, progress, onClose, isFullyExpanded 
             {/* ML Impact */}
             <div className="p-6 rounded-xl bg-white/5 border border-white/10">
               <h3 className="text-sm font-semibold text-white/60 uppercase tracking-wide mb-3">ML Impact</h3>
-              <div className="flex items-baseline gap-2">
-                <span className="text-4xl font-bold text-white">{Math.round(paper.impactScore)}</span>
-                <span className="text-lg text-white/60">/ 100</span>
+              <div className="flex items-center gap-3">
+                <span className="text-3xl font-bold text-white capitalize">
+                  {paper.mlImpact || 'none'}
+                </span>
               </div>
-              {/* Impact bar visualization */}
-              <div className="mt-4 h-2 bg-white/10 rounded-full overflow-hidden">
-                <div
-                  className="h-full rounded-full transition-all duration-500"
-                  style={{
-                    width: `${paper.impactScore}%`,
-                    background: `linear-gradient(90deg, ${bubbleColor}, ${bubbleColor}dd)`
-                  }}
-                />
+              {/* Impact category badges */}
+              <div className="mt-4 flex gap-1.5">
+                {['none', 'minimal', 'moderate', 'substantial', 'core'].map((level) => (
+                  <div
+                    key={level}
+                    className={`h-2 flex-1 rounded-full transition-all duration-500 ${
+                      ['none', 'minimal', 'moderate', 'substantial', 'core'].indexOf(paper.mlImpact || 'none') >=
+                      ['none', 'minimal', 'moderate', 'substantial', 'core'].indexOf(level)
+                        ? 'opacity-100'
+                        : 'opacity-20'
+                    }`}
+                    style={{
+                      background: ['none', 'minimal', 'moderate', 'substantial', 'core'].indexOf(paper.mlImpact || 'none') >=
+                        ['none', 'minimal', 'moderate', 'substantial', 'core'].indexOf(level)
+                        ? `linear-gradient(90deg, ${bubbleColor}, ${bubbleColor}dd)`
+                        : '#ffffff20'
+                    }}
+                  />
+                ))}
               </div>
             </div>
 
@@ -1016,18 +1041,21 @@ function ImpactMetricsChart({ paper, bubbleColor }: ImpactMetricsChartProps) {
     {
       label: "ML Impact",
       value: paper.impactScore,
+      displayValue: paper.mlImpact || 'none',
       maxValue: 100,
       color: bubbleColor,
     },
     {
       label: "Citations",
       value: Math.min((paper.citations / 100) * 100, 100), // Normalize to 100
+      displayValue: String(paper.citations),
       maxValue: 100,
       color: d3.interpolateRgb(bubbleColor, "#8b5cf6")(0.4),
     },
     {
       label: "Code Availability",
       value: paper.codeAvailable ? 100 : 0,
+      displayValue: paper.codeAvailable ? 'Available' : 'Not Available',
       maxValue: 100,
       color: paper.codeAvailable ? "#22c55e" : "#ef4444",
     },
@@ -1039,7 +1067,7 @@ function ImpactMetricsChart({ paper, bubbleColor }: ImpactMetricsChartProps) {
         <div key={idx} className="space-y-2">
           <div className="flex items-center justify-between text-sm">
             <span className="text-white/80 font-medium">{metric.label}</span>
-            <span className="text-white/60">{Math.round(metric.value)}</span>
+            <span className="text-white/60 capitalize">{metric.displayValue}</span>
           </div>
           <div className="h-3 bg-white/10 rounded-full overflow-hidden">
             <motion.div
